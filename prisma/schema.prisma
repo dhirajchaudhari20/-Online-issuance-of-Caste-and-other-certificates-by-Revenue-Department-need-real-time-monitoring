@@ -1,0 +1,283 @@
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+  // provider = "prisma-dbml-generator" // Uncomment this to generate the dbml and comment above provider then run npx prism generate
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  USER
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHERS
+}
+
+
+enum Status {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum Relationship {
+  FATHER
+  MOTHER
+  BROTHER
+  SISTER
+  UNCLE
+  AUNT
+  GRANDFATHER
+  GRANDMOTHER
+  SON
+  DAUGHTER
+  SPOUSE
+  SELF
+  OTHERS
+}
+
+enum DeliveryOption {
+  DELIVERY
+  PICK_UP
+}
+
+model User {
+  id                      String                   @id @default(auto()) @map("_id") @db.ObjectId
+  name                    String?
+  email                   String?                  @unique
+  emailVerified           DateTime?
+  image                   String?
+  gender                  Gender?
+  phoneNo                 String?
+  dateOfBirth             DateTime?
+  password                String?
+  role                    UserRole                 @default(USER)
+  accounts                Account[]
+  isTwoFactorEnabled      Boolean                  @default(false)
+  twoFactorConfirmation   TwoFactorConfirmation?
+  twoFactorConfirmationId String?                  @db.ObjectId
+  BirthCertificate        BirthCertificate[]
+  DeathCertificate        DeathCertificate[]
+  MarriageCertificate     MarriageCertificate[]
+  ResidentialCertificate  ResidentialCertificate[]
+}
+
+model Account {
+  id                String  @id @default(auto()) @map("_id") @db.ObjectId
+  userId            String  @db.ObjectId
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.String
+  access_token      String? @db.String
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.String
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model VerificationToken {
+  id      String   @id @default(auto()) @map("_id") @db.ObjectId
+  email   String
+  token   String   @unique
+  expires DateTime
+
+  @@unique([email, token])
+}
+
+model PasswordResetToken {
+  id      String   @id @default(auto()) @map("_id") @db.ObjectId
+  email   String
+  token   String   @unique
+  expires DateTime
+
+  @@unique([email, token])
+}
+
+model TwoFactorToken {
+  id      String   @id @default(auto()) @map("_id") @db.ObjectId
+  email   String
+  token   String   @unique
+  expires DateTime
+
+  @@unique([email, token])
+}
+
+model TwoFactorConfirmation {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  userId String @db.ObjectId
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId])
+}
+
+model BirthCertificate {
+  id                      String       @id @default(auto()) @map("_id") @db.ObjectId
+  userId                  String       @db.ObjectId
+  requesterId             String       @db.ObjectId
+  deliveryDetailsId       String       @db.ObjectId
+  applicationNumber       String
+  status                  Status
+  firstName               String
+  middleName              String?
+  lastName                String
+  placeOfBirthCountry     String
+  placeOfBirthProvince    String
+  placeOfBirthDistrict    String
+  placeOfBirthCity        String
+  DateOfBirth             String
+  gender                  Gender
+  fatherFirstName         String
+  fatherMiddleName        String?
+  fatherLastName          String
+  motherFirstName         String
+  motherMiddleName        String?
+  motherLastName          String
+  relationshipToRequestor Relationship
+  createdAt               DateTime     @default(now())
+  updatedAt               DateTime     @updatedAt
+
+  requester       Requester       @relation(fields: [requesterId], references: [id])
+  deliveryDetails DeliveryDetails @relation(fields: [deliveryDetailsId], references: [id])
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model DeathCertificate {
+  id                      String       @id @default(auto()) @map("_id") @db.ObjectId
+  userId                  String       @db.ObjectId
+  requesterId             String       @db.ObjectId
+  deliveryDetailsId       String       @db.ObjectId
+  applicationNumber       String
+  status                  Status
+  firstName               String
+  middleName              String?
+  lastName                String
+  placeOfDeathCountry     String
+  placeOfDeathProvince    String
+  placeOfDeathDistrict    String
+  placeOfDeathCity        String
+  dateOfDeath             String
+  gender                  Gender
+  causeOfDeath            String
+  relationshipToRequestor Relationship
+  createdAt               DateTime     @default(now())
+  updatedAt               DateTime     @updatedAt
+
+  requester       Requester       @relation(fields: [requesterId], references: [id])
+  deliveryDetails DeliveryDetails @relation(fields: [deliveryDetailsId], references: [id])
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model MarriageCertificate {
+  id                      String       @id @default(auto()) @map("_id") @db.ObjectId
+  userId                  String       @db.ObjectId
+  requesterId             String       @db.ObjectId
+  deliveryDetailsId       String       @db.ObjectId
+  applicationNumber       String
+  status                  Status
+  husbandFirstName        String
+  husbandMiddleName       String?
+  husbandLastName         String
+  WifeFirstName           String
+  wifeMiddleName          String?
+  wifeLastName            String
+  placeOfMarriageCountry  String
+  placeOfMarriageProvince String
+  placeOfMarriageDistrict String
+  placeOfMarriageCity     String
+  dateOfMarriage          String
+  relationshipToRequestor Relationship
+  createdAt               DateTime     @default(now())
+  updatedAt               DateTime     @updatedAt
+
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deliveryDetails DeliveryDetails @relation(fields: [deliveryDetailsId], references: [id])
+  requester       Requester       @relation(fields: [requesterId], references: [id])
+
+  @@index([userId])
+}
+
+model ResidentialCertificate {
+  id                         String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId                     String   @db.ObjectId
+  requesterId                String   @db.ObjectId
+  deliveryDetailsId          String   @db.ObjectId
+  applicationNumber          String
+  status                     Status
+  currentCountry             String
+  currentProvince            String
+  currentDistrict            String
+  currentCity                String
+  destinationCountry         String
+  destinationProvince        String
+  destinationDistrict        String
+  destinationCity            String
+  dateOfResidentialMigration String
+  createdAt                  DateTime @default(now())
+  updatedAt                  DateTime @updatedAt
+
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deliveryDetails DeliveryDetails @relation(fields: [deliveryDetailsId], references: [id])
+  requester       Requester       @relation(fields: [requesterId], references: [id])
+  familyMembers   FamilyMember[]
+
+  @@index([userId])
+}
+
+model FamilyMember {
+  id                       String                 @id @default(auto()) @map("_id") @db.ObjectId
+  firstName                String
+  middleName               String?
+  lastName                 String
+  dateOfBirth              String
+  placeOfBirth             String
+  gender                   Gender
+  relationshipToRequester  Relationship
+  residentialCertificate   ResidentialCertificate @relation(fields: [residentialCertificateId], references: [id])
+  residentialCertificateId String                 @db.ObjectId
+}
+
+model Requester {
+  id                     String                   @id @default(auto()) @map("_id") @db.ObjectId
+  requesterFirstName     String
+  requesterMiddleName    String?
+  requesterLastName      String
+  requesterEmail         String                   @unique
+  requesterMobileNumber  String
+  BirthCertificate       BirthCertificate[]
+  DeathCertificate       DeathCertificate[]
+  MarriageCertificate    MarriageCertificate[]
+  ResidentialCertificate ResidentialCertificate[]
+}
+
+model DeliveryDetails {
+  id                     String                   @id @default(auto()) @map("_id") @db.ObjectId
+  deliveryOption         DeliveryOption
+  deliveryProvince       String
+  deliveryDistrict       String
+  deliveryAddress        String
+  deliveryMunicipality   String?
+  deliveryWard           String?
+  deliveryPostalCode     String?
+  birthCertificate       BirthCertificate[]
+  deathCertificate       DeathCertificate[]
+  marriageCertificate    MarriageCertificate[]
+  residentialCertificate ResidentialCertificate[]
+}
